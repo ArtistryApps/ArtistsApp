@@ -1,0 +1,1 @@
+# FASTApi backend for consulting municipalities
