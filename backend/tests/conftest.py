@@ -1,52 +1,53 @@
-"""Conftest for test fixtures."""
+"""Shared test fixtures."""
 import os
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.main import create_app
-from app.config.database import get_db
-from app.models import Base
+# Provide credentials before any app module is imported so the lazy
+# cached_property never tries to reach GCP.
+os.environ.setdefault("POSTGRES_PASSWORD", "test")
+os.environ.setdefault("SESSION_SECRET", "test-secret")
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_conftest.db"
+from app.main import create_app          # noqa: E402
+from app.config.database import get_db  # noqa: E402
+from app.models import Base              # noqa: E402
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+_SQLITE_URL = "sqlite:///./test_shared.db"
 
-Base.metadata.create_all(bind=engine)
+_engine = create_engine(_SQLITE_URL, connect_args={"check_same_thread": False})
+_Session = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
 
 
-def override_get_db():
-    """Override get_db for tests."""
+def _override_db():
+    db = _Session()
     try:
-        db = TestingSessionLocal()
         yield db
     finally:
         db.close()
 
 
-@pytest.fixture(scope="session")
-def test_db():
-    """Create test database."""
-    Base.metadata.create_all(bind=engine)
-    yield engine
-    Base.metadata.drop_all(bind=engine)
+@pytest.fixture(scope="session", autouse=True)
+def create_tables():
+    Base.metadata.create_all(bind=_engine)
+    yield
+    Base.metadata.drop_all(bind=_engine)
 
 
 @pytest.fixture
-def db():
-    """Create fresh database for each test."""
-    Base.metadata.create_all(bind=engine)
-    yield TestingSessionLocal()
-    Base.metadata.drop_all(bind=engine)
+def db(create_tables):
+    Base.metadata.create_all(bind=_engine)
+    session = _Session()
+    yield session
+    session.rollback()
+    session.close()
 
 
 @pytest.fixture
-def client(test_db):
-    """Create test client."""
-    app = create_app()
-    app.dependency_overrides[get_db] = override_get_db
-    return TestClient(app)
+def client(create_tables):
+    application = create_app()
+    application.dependency_overrides[get_db] = _override_db
+    with TestClient(application, raise_server_exceptions=True) as c:
+        yield c
+    application.dependency_overrides.clear()

@@ -1,25 +1,30 @@
 """FastAPI application factory."""
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
-from .config.settings import settings
-from .config.database import engine
-from .models import Base
-from .endpoints import music, health
+from .config import settings, get_engine
+from .endpoints import auth_router, health_router, music_router
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+
+@asynccontextmanager
+async def _lifespan(_: FastAPI):
+    from .models import Base
+    Base.metadata.create_all(bind=get_engine())
+    yield
 
 
 def create_app() -> FastAPI:
-    """Create and configure FastAPI application."""
     app = FastAPI(
         title=settings.API_TITLE,
         version=settings.API_VERSION,
         description=settings.API_DESCRIPTION,
+        lifespan=_lifespan,
     )
-    
-    # Add CORS middleware
+
+    app.add_middleware(SessionMiddleware, secret_key=settings.SESSION_SECRET)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -27,11 +32,11 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
-    # Include routers
-    app.include_router(health.router)
-    app.include_router(music.router)
-    
+
+    app.include_router(health_router)
+    app.include_router(music_router)
+    app.include_router(auth_router)
+
     return app
 
 

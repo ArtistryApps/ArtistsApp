@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.models import Base
-from app.models.music import Song, Beat, Section
+from app.models.music import SongAnalysis as Song, Beat, Section
 from app.adapters.repository_adapter import MusicRepositoryAdapter
 from app.adapters.music_adapter import MusicAnalysisAdapter
 

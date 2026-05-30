@@ -1,0 +1,10 @@
+- Use the typing library heavily. you don't necessarily need to include typing for every variable declaration, but necessarily:
+    - Every param on every class should be described using typing.
+    - Choose the typing library for declaring the var types even if you could do it with var: dict, you should do it with var: Dict[str, Any]
+- Use ruff for linting, typically, you shouldn't let lines surpass 85 columns.
+- Make sure to add underlines to private class variables that don't need to be called anywhere else within the code.
+- Add docstrings, but not too long, for every class method or function you create. Don't surpass 4 lines unless it's a very long and important method, what classifies as long and important is up to you.
+- Endpoints should be named after REST conventions
+- Typically, internal libraries should be named AFTER external library imports, AFTER that, there should be internal package imports, like packages from THIS project (example: from ..config import DEFAULT USERNAME).
+- Prefer relative imports instead of absolute ones for the internal packages. Instead of from app.config.secrets import get_secrets do from ..config import get_secrets if you're on a module inside the core folder.
+- Make sure all functions or classes who are supposed to be imported from any module is displayed on __init__.py and on __all__ = ["class_to_be_imported1", "class_to_be_imported2", ...]
