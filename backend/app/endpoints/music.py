@@ -1,5 +1,4 @@
 """Music-related endpoints."""
-from collections import defaultdict
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -80,74 +79,22 @@ async def get_song_analysis(song_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ---------------------------------------------------------------------------
-# Analytics endpoint
-# ---------------------------------------------------------------------------
 
-def _chord_analysis(beats: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Group beats by section occurrence and map each beat position to its chord."""
-    groups: Dict[str, Dict] = defaultdict(dict)
-    counters: Dict[str, int] = defaultdict(int)
-
-    for beat in beats:
-        section_key = f"{beat['section']} ({beat['section_repeat']})"
-        counters[section_key] += 1
-        groups[section_key][f"beat {counters[section_key]}"] = beat["chord"]
-
-    result = []
-    for section_key, chord_map in groups.items():
-        item: Dict[str, Any] = {"section": section_key}
-        item.update(chord_map)
-        result.append(item)
-    return result
-
-
-@router.get("/songs/{song_id}/analytics", dependencies=[Depends(require_session)])
+@router.get("/songs/{song_name}/analytics", dependencies=[Depends(require_session)])
 def get_song_analytics(
-    song_id: int,
-    db: Session = Depends(get_db),
+    song_name: str,
 ) -> Dict[str, Any]:
-    """Return beat, section and chord analysis for a song."""
-    repository = MusicRepositoryAdapter(db)
+    """Return beat, section and chord analysis for a song via MusicReader."""
+    analysis_adapter = MusicAnalysisAdapter()
 
-    song = repository.get_song(song_id)
-    if not song:
-        raise HTTPException(status_code=404, detail="Song not found")
+    result = analysis_adapter.get_analytics_by_name(song_name)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Song not found on Chordify")
 
-    beats = repository.get_beats(song_id)
-    sections = repository.get_sections(song_id)
-
-    beat_analysis = [
-        {
-            "beat":           b["beat_index"],
-            "bar":            b["bar_number"],
-            "bar_in_section": b["bar_in_section"],
-            "beat_in_bar":    b["beat_in_bar"],
-            "chord":          b["chord"],
-            "label":          "",
-            "is_new":         b["is_new"],
-            "section":        b["section"],
-            "section_repeat": b["section_repeat"],
-            "chord_degree":   b["chord_degree"],
-            "chord_quality":  b["chord_quality"],
-        }
-        for b in beats
-    ]
-
-    section_analysis = [
-        {
-            "section":                    s["section_name"],
-            "section_repeat":             s["section_repeat"],
-            "chords":                     s["chords"],
-            "num_bars":                   s["num_bars"],
-            "most_frequent_progression":  s["most_frequent_progression"],
-            "avg_beats_per_chord_change": s["avg_beats_per_chord_change"],
-        }
-        for s in sections
-    ]
+    beats, section_analysis, chord_grid = result
 
     return {
-        "Beat Analysis":    beat_analysis,
+        "Beat Analysis":    beats,
         "Section Analysis": section_analysis,
-        "Chord Analysis":   _chord_analysis(beats),
+        "Chord Analysis":   chord_grid,
     }

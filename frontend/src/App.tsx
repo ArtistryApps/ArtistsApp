@@ -1,42 +1,30 @@
-/**
- * Main App component
- */
-
-import React, { useEffect, useState } from 'react';
-import { Layout } from '@/components/Layout';
-import { MusicAnalyzer } from '@/components/MusicAnalyzer';
-import { healthService } from '@/services/health-service';
-import './App.css';
+import { useState, useEffect } from 'react';
+import { LoginPage } from '@/components/LoginPage';
+import { AnalyticsDashboard } from '@/components/AnalyticsDashboard';
 
 function App() {
-  const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        await healthService.checkHealth();
-        setIsHealthy(true);
-        setError(null);
-      } catch (err) {
-        setIsHealthy(false);
-        setError('Failed to connect to API');
-      }
-    };
-
-    checkHealth();
+    const onUnauthorized = () => setAuthenticated(false);
+    window.addEventListener('unauthorized', onUnauthorized);
+    return () => window.removeEventListener('unauthorized', onUnauthorized);
   }, []);
 
+  if (authenticated === null) {
+    return (
+      <LoginPage onLoginSuccess={() => setAuthenticated(true)} />
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <LoginPage onLoginSuccess={() => setAuthenticated(true)} />
+    );
+  }
+
   return (
-    <Layout>
-      <div className="app">
-        {error && <div className="connection-error">{error}</div>}
-        {isHealthy === false && (
-          <div className="warning">⚠️ API connection failed. Some features may not work.</div>
-        )}
-        <MusicAnalyzer />
-      </div>
-    </Layout>
+    <AnalyticsDashboard onLogout={() => setAuthenticated(false)} />
   );
 }
 

@@ -1,6 +1,9 @@
 """Application settings and configuration."""
 import os
 from functools import cached_property
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Settings:
