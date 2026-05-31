@@ -1,12 +1,16 @@
 """Auth endpoints: register, login, logout, my_details."""
+import logging
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 
-from ..config import get_db
+from ..config import get_db, get_mongo_db
 from ..core import require_session
 from ..db import Privilege, Session as SessionModel, User
 from ..models import LoginRequest, RegisterRequest, SessionResponse, UserDetailsResponse
-from ..services import login_user, logout_user, register_user
+from ..services import login_user, logout_user, register_user, clear_cache
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -29,11 +33,17 @@ def login(
 
 
 @router.post("/logout")
-def logout(request: Request, db: DBSession = Depends(get_db)) -> dict:
-    token = request.session.get("session_token")
-    if token:
-        logout_user(db=db, session_token=token)
-        request.session.clear()
+def logout(
+    request: Request,
+    db: DBSession = Depends(get_db),
+    session: SessionModel = Depends(require_session),
+) -> dict:
+    try:
+        clear_cache(get_mongo_db(), session.client_id)
+    except Exception:
+        logger.exception("MongoDB clear_cache failed on logout — continuing")
+    logout_user(db=db, session_token=session.token)
+    request.session.clear()
     return {"message": "Logged out"}
 
 

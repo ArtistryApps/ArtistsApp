@@ -45,10 +45,18 @@ export type SectionEntry = z.infer<typeof SectionEntrySchema>;
 export const ChordRowSchema = z.record(z.string(), z.string());
 export type ChordRow = z.infer<typeof ChordRowSchema>;
 
+const Paginated = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    total: z.number(),
+    offset: z.number(),
+    limit: z.number(),
+    data: z.array(itemSchema),
+  });
+
 export const SongAnalyticsSchema = z.object({
-  'Beat Analysis': z.array(BeatEntrySchema),
-  'Section Analysis': z.array(SectionEntrySchema),
-  'Chord Analysis': z.array(ChordRowSchema),
+  'Beat Analysis': Paginated(BeatEntrySchema),
+  'Section Analysis': Paginated(ChordRowSchema),
+  'Chord Analysis': Paginated(SectionEntrySchema),
 });
 export type SongAnalytics = z.infer<typeof SongAnalyticsSchema>;
 

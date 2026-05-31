@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { analyticsService } from '@/services/analytics-service';
 import { authService } from '@/services/auth-service';
+import { chatService } from '@/services/chat-service';
 import type { SongAnalytics, BeatEntry, SectionEntry, ChordRow } from '@/schemas';
 import './AnalyticsDashboard.css';
 
 type Tab = 'beat' | 'section' | 'chord';
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface AnalyticsDashboardProps {
   onLogout: () => void;
@@ -18,12 +26,23 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onLogout
   const [loadedSong, setLoadedSong] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('section');
 
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
   const handleSearch = async () => {
     const name = songInput.trim();
     if (!name) return;
     setLoading(true);
     setError(null);
     setAnalytics(null);
+    setChatMessages([]);
     try {
       const data = await analyticsService.getSongAnalytics(name);
       setAnalytics(data);
@@ -40,10 +59,27 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onLogout
   };
 
   const handleLogout = async () => {
+    try { await authService.logout(); } finally { onLogout(); }
+  };
+
+  const handleAsk = async () => {
+    const question = chatInput.trim();
+    if (!question || !loadedSong) return;
+    setChatInput('');
+    setChatError(null);
+    setChatMessages((prev) => [...prev, { role: 'user', content: question }]);
+    setChatLoading(true);
     try {
-      await authService.logout();
+      const answer = await chatService.ask(question);
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
+    } catch (err: unknown) {
+      const detail =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : null;
+      setChatError(detail ?? 'Failed to get a response. Try again.');
     } finally {
-      onLogout();
+      setChatLoading(false);
     }
   };
 
@@ -54,9 +90,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onLogout
           <span className="dashboard-icon">♪</span>
           <span className="dashboard-title">Artists App</span>
         </div>
-        <button className="logout-btn" onClick={handleLogout}>
-          Sign out
-        </button>
+        <button className="logout-btn" onClick={handleLogout}>Sign out</button>
       </header>
 
       <main className="dashboard-main">
@@ -79,45 +113,115 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onLogout
         </section>
 
         {analytics && (
-          <section className="results-section">
-            <h3 className="results-title">{loadedSong}</h3>
+          <>
+            <section className="results-section">
+              <div className="results-title-row">
+                <h3 className="results-title">{loadedSong}</h3>
+                <div className="results-totals">
+                  <span>{analytics['Beat Analysis'].total} beats</span>
+                  <span>{analytics['Chord Analysis'].total} sections</span>
+                  <span>{analytics['Section Analysis'].total} chord rows</span>
+                </div>
+              </div>
 
-            <div className="tabs">
-              <button
-                className={`tab ${activeTab === 'section' ? 'tab-active' : ''}`}
-                onClick={() => setActiveTab('section')}
-              >
-                Section Analysis
-                <span className="tab-count">{analytics['Section Analysis'].length}</span>
-              </button>
-              <button
-                className={`tab ${activeTab === 'chord' ? 'tab-active' : ''}`}
-                onClick={() => setActiveTab('chord')}
-              >
-                Chord Grid
-                <span className="tab-count">{analytics['Chord Analysis'].length}</span>
-              </button>
-              <button
-                className={`tab ${activeTab === 'beat' ? 'tab-active' : ''}`}
-                onClick={() => setActiveTab('beat')}
-              >
-                Beat Analysis
-                <span className="tab-count">{analytics['Beat Analysis'].length}</span>
-              </button>
-            </div>
+              <div className="tabs">
+                <button
+                  className={`tab ${activeTab === 'chord' ? 'tab-active' : ''}`}
+                  onClick={() => setActiveTab('chord')}
+                >
+                  Section Analysis
+                  <span className="tab-count">{analytics['Chord Analysis'].total}</span>
+                </button>
+                <button
+                  className={`tab ${activeTab === 'section' ? 'tab-active' : ''}`}
+                  onClick={() => setActiveTab('section')}
+                >
+                  Chord Grid
+                  <span className="tab-count">{analytics['Section Analysis'].total}</span>
+                </button>
+                <button
+                  className={`tab ${activeTab === 'beat' ? 'tab-active' : ''}`}
+                  onClick={() => setActiveTab('beat')}
+                >
+                  Beat Analysis
+                  <span className="tab-count">{analytics['Beat Analysis'].total}</span>
+                </button>
+              </div>
 
-            <div className="tab-content">
-              {activeTab === 'section' && (
-                <SectionAnalysisPanel sections={analytics['Section Analysis']} />
+              <div className="tab-content">
+                {activeTab === 'chord' && (
+                  <SectionAnalysisPanel sections={analytics['Chord Analysis'].data} />
+                )}
+                {activeTab === 'section' && (
+                  <ChordAnalysisPanel rows={analytics['Section Analysis'].data} />
+                )}
+                {activeTab === 'beat' && (
+                  <BeatAnalysisPanel beats={analytics['Beat Analysis'].data} />
+                )}
+              </div>
+            </section>
+
+            <section className="chat-section">
+              <h3 className="chat-heading">Ask about this song</h3>
+
+              {chatMessages.length > 0 && (
+                <div className="chat-messages">
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`chat-message chat-message-${msg.role}`}>
+                      <span className="chat-role">
+                        {msg.role === 'user' ? 'You' : '♪ Assistant'}
+                      </span>
+                      {msg.role === 'assistant' ? (
+                        <div className="chat-body markdown">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div className="chat-body">{msg.content}</div>
+                      )}
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="chat-message chat-message-assistant">
+                      <span className="chat-role">♪ Assistant</span>
+                      <div className="chat-body chat-typing">
+                        <span /><span /><span />
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
               )}
-              {activeTab === 'chord' && (
-                <ChordAnalysisPanel rows={analytics['Chord Analysis']} />
-              )}
-              {activeTab === 'beat' && (
-                <BeatAnalysisPanel beats={analytics['Beat Analysis']} />
-              )}
-            </div>
-          </section>
+
+              {chatError && <div className="chat-error">{chatError}</div>}
+
+              <div className="chat-input-row">
+                <textarea
+                  className="chat-input"
+                  placeholder="Ask anything about this song's chords, structure, progressions…"
+                  value={chatInput}
+                  rows={2}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAsk();
+                    }
+                  }}
+                  disabled={chatLoading}
+                />
+                <button
+                  className="chat-send-btn"
+                  onClick={handleAsk}
+                  disabled={chatLoading || !chatInput.trim()}
+                >
+                  {chatLoading ? '…' : '↑'}
+                </button>
+              </div>
+              <p className="chat-hint">Press Enter to send · Shift+Enter for new line</p>
+            </section>
+          </>
         )}
       </main>
     </div>
@@ -142,7 +246,7 @@ const SectionAnalysisPanel: React.FC<{ sections: SectionEntry[] }> = ({ sections
         </div>
         <div className="section-stat">
           <span className="stat-label">Avg beats / chord</span>
-          <span className="stat-value">{s.avg_beats_per_chord_change.toFixed(1)}</span>
+          <span className="stat-value">{s.avg_beats_per_chord_change.toFixed(2)}</span>
         </div>
         {s.most_frequent_progression.length > 0 && (
           <div className="section-progression">
@@ -169,22 +273,18 @@ const SectionAnalysisPanel: React.FC<{ sections: SectionEntry[] }> = ({ sections
   </div>
 );
 
-// --- Chord Analysis ---
+// --- Chord Grid ---
 
 const ChordAnalysisPanel: React.FC<{ rows: ChordRow[] }> = ({ rows }) => {
-  if (rows.length === 0) return <p className="empty">No chord data available.</p>;
-
+  if (rows.length === 0) return <p className="empty">No chord grid data available.</p>;
   const beatKeys = Object.keys(rows[0]).filter((k) => k !== 'section');
-
   return (
     <div className="chord-table-wrap">
       <table className="chord-table">
         <thead>
           <tr>
             <th className="chord-th chord-th-section">Section</th>
-            {beatKeys.map((k) => (
-              <th key={k} className="chord-th">{k}</th>
-            ))}
+            {beatKeys.map((k) => <th key={k} className="chord-th">{k}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -228,11 +328,11 @@ const BeatAnalysisPanel: React.FC<{ beats: BeatEntry[] }> = ({ beats }) => (
             <td>{b.beat}</td>
             <td>{b.bar}</td>
             <td>{b.beat_in_bar}</td>
-            <td>{b.section}{b.section_repeat > 1 ? ` (${b.section_repeat})` : ''}</td>
+            <td className="beat-section-cell">{b.section}{b.section_repeat > 1 ? ` (${b.section_repeat})` : ''}</td>
             <td className="beat-chord">{b.chord ?? '—'}</td>
             <td>{b.label || '—'}</td>
-            <td>{b.chord_degree ?? '—'}</td>
-            <td>{b.chord_quality ?? '—'}</td>
+            <td className="beat-degree-cell">{b.chord_degree ?? '—'}</td>
+            <td className="beat-quality-cell">{b.chord_quality ?? '—'}</td>
             <td>{b.is_new ? '✓' : ''}</td>
           </tr>
         ))}

@@ -15,6 +15,9 @@ class Settings:
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
     POSTGRES_PORT: int = int(os.getenv("POSTGRES_PORT", "5432"))
 
+    MONGODB_URI:     str = os.getenv("MONGODB_URI", "")
+    MONGODB_DB_NAME: str = os.getenv("MONGO_DB_NAME", "artistsapp")
+
     # API metadata
     API_TITLE: str = "Artists API"
     API_VERSION: str = "0.1.0"

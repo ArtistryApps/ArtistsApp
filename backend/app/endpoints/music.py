@@ -1,14 +1,19 @@
 """Music-related endpoints."""
+import logging
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from ..config import get_db, settings
+from ..config import get_db, get_mongo_db, settings
 from ..controllers import MusicController
 from ..adapters import MusicAnalysisAdapter, MusicRepositoryAdapter
 from ..core import require_session
+from ..db import Session as SessionModel
+from ..services import write_cache, read_cache, get_ai_analysis
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/music", tags=["music"])
 
@@ -39,6 +44,10 @@ class SongSchema(BaseModel):
 class SongAnalysisRequest(BaseModel):
     song_data: SongSchema
     beats: List[BeatSchema]
+
+
+class AIAnalysisRequest(BaseModel):
+    prompt: str = Field(..., min_length=1)
 
 
 @router.post("/analyze")
@@ -79,22 +88,69 @@ async def get_song_analysis(song_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _paginate(data: list, offset: int, limit: int) -> Dict[str, Any]:
+    return {
+        "total":  len(data),
+        "offset": offset,
+        "limit":  limit,
+        "data":   data[offset : offset + limit],
+    }
 
-@router.get("/songs/{song_name}/analytics", dependencies=[Depends(require_session)])
+
+@router.get("/songs/{song_name}/analytics")
 def get_song_analytics(
     song_name: str,
+    offset: int = 0,
+    limit: int = 50,
+    session: SessionModel = Depends(require_session),
 ) -> Dict[str, Any]:
     """Return beat, section and chord analysis for a song via MusicReader."""
-    analysis_adapter = MusicAnalysisAdapter()
+    beats = section_analysis = chord_grid = None
 
-    result = analysis_adapter.get_analytics_by_name(song_name)
-    if result is None:
-        raise HTTPException(status_code=404, detail="Song not found on Chordify")
+    try:
+        mongo_db = get_mongo_db()
+        cached = read_cache(mongo_db, session.client_id, song_name)
+        if cached:
+            beats          = cached["beats"]
+            section_analysis = cached["sections"]
+            chord_grid     = cached["chord_grid"]
+    except Exception:
+        logger.exception("MongoDB read_cache failed — falling back to MusicReader")
 
-    beats, section_analysis, chord_grid = result
+    if beats is None:
+        analysis_adapter = MusicAnalysisAdapter()
+        result = analysis_adapter.get_analytics_by_name(song_name)
+        if result is None:
+            raise HTTPException(status_code=404, detail="Song not found on Chordify")
+
+        beats, section_analysis, chord_grid = result
+
+        try:
+            mongo_db = get_mongo_db()
+            write_cache(mongo_db, session.client_id, song_name, beats, section_analysis, chord_grid)
+        except Exception:
+            logger.exception("MongoDB write_cache failed — continuing without cache")
 
     return {
-        "Beat Analysis":    beats,
-        "Section Analysis": section_analysis,
-        "Chord Analysis":   chord_grid,
+        "Beat Analysis":    _paginate(beats, offset, limit),
+        "Section Analysis": _paginate(section_analysis, offset, limit),
+        "Chord Analysis":   _paginate(chord_grid, offset, limit),
     }
+
+
+@router.post("/songs/ai-analysis")
+def ai_song_analysis(
+    body: AIAnalysisRequest,
+    session: SessionModel = Depends(require_session),
+) -> Dict[str, Any]:
+    """Return an AI-generated insight about the currently cached song analysis."""
+    mongo_db = get_mongo_db()
+    cache = read_cache(mongo_db, session.client_id)
+    if cache is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No cached analysis found — call /songs/{song_name}/analytics first",
+        )
+
+    analysis = get_ai_analysis(body.prompt, cache)
+    return {"analysis": analysis}
