@@ -38,7 +38,7 @@ export const SectionEntrySchema = z.object({
   chords: z.array(z.string()),
   num_bars: z.number(),
   most_frequent_progression: z.array(z.string()),
-  avg_beats_per_chord_change: z.number(),
+  avg_beats_per_chord_change: z.number().nullable().optional(),
 });
 export type SectionEntry = z.infer<typeof SectionEntrySchema>;
 
@@ -55,24 +55,55 @@ const Paginated = <T extends z.ZodTypeAny>(itemSchema: T) =>
 
 export const SongAnalyticsSchema = z.object({
   'Beat Analysis': Paginated(BeatEntrySchema),
-  'Section Analysis': Paginated(ChordRowSchema),
-  'Chord Analysis': Paginated(SectionEntrySchema),
+  'Section Analysis': Paginated(SectionEntrySchema),
+  'Chord Analysis': Paginated(ChordRowSchema),
 });
 export type SongAnalytics = z.infer<typeof SongAnalyticsSchema>;
+
+// --- Notes ---
+
+export const CreateNoteSchema = z.object({
+  genre: z.string().min(1, 'Genre is required'),
+  album: z.string().min(1, 'Album is required'),
+  artist: z.string().min(1, 'Artist is required'),
+  song_name: z.string().min(1, 'Song name is required'),
+  notes: z.string().min(1, 'Notes are required'),
+});
+export type CreateNote = z.infer<typeof CreateNoteSchema>;
+
+export const NoteEntrySchema = z.object({
+  song_note_id: z.number(),
+  user: z.number(),
+  genre: z.string(),
+  artist: z.string(),
+  album: z.string(),
+  name: z.string(),
+  cur_user_notes: z.string(),
+});
+export type NoteEntry = z.infer<typeof NoteEntrySchema>;
+
+export const NoteFiltersSchema = z.object({
+  genre: z.string().optional(),
+  artist: z.string().optional(),
+  album: z.string().optional(),
+  name: z.string().optional(),
+});
+export type NoteFilters = z.infer<typeof NoteFiltersSchema>;
 
 // --- Legacy schemas (kept for existing service code) ---
 
 export const BeatSchema = z.object({
-  beat_index: z.number(),
+  bar: z.number(),
   bar_number: z.number(),
+  beat: z.number(),
   beat_in_bar: z.number(),
   chord: z.string().optional(),
   chord_degree: z.string().optional(),
   chord_quality: z.string().optional(),
   is_new: z.boolean().default(false),
-  section: z.string().optional(),
+  label: z.string().optional(),
+  section: z.number().optional(),
   section_repeat: z.number().default(1),
-  bar_in_section: z.number().optional(),
 });
 export type Beat = z.infer<typeof BeatSchema>;
 
@@ -89,12 +120,12 @@ export type Song = z.infer<typeof SongSchema>;
 
 export const SectionSchema = z.object({
   id: z.number(),
-  section_name: z.string(),
-  section_repeat: z.number(),
-  chords: z.array(z.string()),
-  num_bars: z.number(),
-  most_frequent_progression: z.array(z.string()),
   avg_beats_per_chord_change: z.number().optional(),
+  chords: z.array(z.string()).optional(),
+  most_frequent_progression: z.array(z.string()).optional(),
+  num_bars: z.number().optional(),
+  section: z.string(),
+  section_repeat: z.number(),
 });
 export type Section = z.infer<typeof SectionSchema>;
 

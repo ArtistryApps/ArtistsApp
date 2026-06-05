@@ -1,6 +1,6 @@
 """Music-related endpoints."""
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -11,7 +11,11 @@ from ..controllers import MusicController
 from ..adapters import MusicAnalysisAdapter, MusicRepositoryAdapter
 from ..core import require_session
 from ..db import Session as SessionModel
-from ..services import write_cache, read_cache, get_ai_analysis
+from ..services import (
+    write_cache, read_cache, get_ai_analysis,
+    write_conversation_state, read_conversation_state,
+    save_song_notes, filter_song_notes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +52,24 @@ class SongAnalysisRequest(BaseModel):
 
 class AIAnalysisRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
+
+
+class SongNotesRequest(BaseModel):
+    genre:     str = Field(..., min_length=1)
+    album:     str = Field(..., min_length=1)
+    artist:    str = Field(..., min_length=1)
+    song_name: str = Field(..., min_length=1)
+    notes:     str = Field(..., min_length=1)
+
+
+class SongNoteRow(BaseModel):
+    song_note_id:   int
+    user:           int
+    genre:          Optional[str]
+    artist:         Optional[str]
+    album:          Optional[str]
+    name:           str
+    cur_user_notes: str
 
 
 @router.post("/analyze")
@@ -111,9 +133,9 @@ def get_song_analytics(
         mongo_db = get_mongo_db()
         cached = read_cache(mongo_db, session.client_id, song_name)
         if cached:
-            beats          = cached["beats"]
+            beats            = cached["beats"]
             section_analysis = cached["sections"]
-            chord_grid     = cached["chord_grid"]
+            chord_grid       = cached["chord_grid"]
     except Exception:
         logger.exception("MongoDB read_cache failed — falling back to MusicReader")
 
@@ -123,13 +145,14 @@ def get_song_analytics(
         if result is None:
             raise HTTPException(status_code=404, detail="Song not found on Chordify")
 
-        beats, section_analysis, chord_grid = result
+        beats, section_analysis, chord_grid, details = result
 
         try:
             mongo_db = get_mongo_db()
             write_cache(mongo_db, session.client_id, song_name, beats, section_analysis, chord_grid)
         except Exception:
             logger.exception("MongoDB write_cache failed — continuing without cache")
+
 
     return {
         "Beat Analysis":    _paginate(beats, offset, limit),
@@ -152,5 +175,49 @@ def ai_song_analysis(
             detail="No cached analysis found — call /songs/{song_name}/analytics first",
         )
 
-    analysis = get_ai_analysis(body.prompt, cache)
+    response_id = None
+    try:
+        response_id = read_conversation_state(mongo_db, session.client_id)
+    except Exception:
+        logger.exception("MongoDB read_conversation_state failed — proceeding without prior context")
+
+    analysis, new_response_id = get_ai_analysis(body.prompt, cache, response_id)
+
+    try:
+        write_conversation_state(mongo_db, session.client_id, cache["song_name"], new_response_id)
+    except Exception:
+        logger.exception("MongoDB write_conversation_state failed")
+
     return {"analysis": analysis}
+
+
+@router.post("/songs/notes")
+def save_notes(
+    body: SongNotesRequest,
+    session: SessionModel = Depends(require_session),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """Save user song research to Postgres."""
+    song_note_id = save_song_notes(
+        db,
+        session.client_id,
+        body.genre,
+        body.album,
+        body.artist,
+        body.song_name,
+        body.notes,
+    )
+    return {"song_note_id": song_note_id}
+
+
+@router.get("/songs/notes", response_model=List[SongNoteRow])
+def get_notes(
+    genre:  Optional[str] = None,
+    artist: Optional[str] = None,
+    album:  Optional[str] = None,
+    name:   Optional[str] = None,
+    session: SessionModel = Depends(require_session),
+    db: Session = Depends(get_db),
+) -> List[SongNoteRow]:
+    """Filter and retrieve saved song notes for the current user."""
+    return filter_song_notes(db, session.client_id, genre, artist, album, name)

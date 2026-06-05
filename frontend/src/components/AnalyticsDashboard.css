@@ -686,7 +686,231 @@
 }
 
 .chat-hint {
+ 
   color: rgba(255, 255, 255, 0.2);
   font-size: 11px;
   margin-top: 6px;
+}
+
+/* Notes form section */
+.notes-form-section {
+  margin-top: 48px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 36px;
+}
+
+.notes-form-heading {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+.notes-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 900px;
+}
+
+.notes-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.notes-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-field-full {
+  width: 100%;
+}
+
+.notes-field label {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.notes-field input,
+.notes-field textarea {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 13px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.notes-field input::placeholder,
+.notes-field textarea::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.notes-field input:focus,
+.notes-field textarea:focus {
+  border-color: #667eea;
+}
+
+.notes-field-error {
+  color: #fc8181;
+  font-size: 12px;
+}
+
+.notes-server-error {
+  background: rgba(252, 129, 129, 0.1);
+  border: 1px solid rgba(252, 129, 129, 0.25);
+  border-radius: 8px;
+  color: #fc8181;
+  font-size: 13px;
+  padding: 10px 14px;
+}
+
+.notes-success {
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  border-radius: 8px;
+  color: #34d399;
+  font-size: 13px;
+  padding: 10px 14px;
+}
+
+.notes-submit-btn {
+  align-self: flex-start;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 24px;
+  transition: opacity 0.2s;
+}
+
+.notes-submit-btn:hover:not(:disabled) { opacity: 0.88; }
+.notes-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Notes tab */
+.notes-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.notes-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.notes-filter-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-size: 14px;
+  padding: 9px 13px;
+  outline: none;
+  width: 160px;
+  transition: border-color 0.2s;
+}
+
+.notes-filter-input::placeholder { color: rgba(255, 255, 255, 0.25); }
+.notes-filter-input:focus { border-color: #667eea; }
+
+.notes-filter-btn {
+  background: rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(102, 126, 234, 0.35);
+  border-radius: 8px;
+  color: #a5b4fc;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 20px;
+  transition: background 0.2s;
+}
+
+.notes-filter-btn:hover:not(:disabled) { background: rgba(102, 126, 234, 0.3); }
+.notes-filter-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.note-card {
+  background: #141428;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.note-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.note-song-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-song-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.note-artist {
+  font-size: 14px;
+  color: #7dd3fc;
+  font-weight: 500;
+}
+
+.note-meta {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.note-genre-chip {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 20px;
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+}
+
+.note-id {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.note-body {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #cbd5e1;
 }

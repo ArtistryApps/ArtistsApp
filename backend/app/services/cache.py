@@ -4,9 +4,10 @@ from typing import Any, Dict, List, Optional
 
 from pymongo.database import Database
 
-BEAT_COLLECTION    = "Beats"
-SECTION_COLLECTION = "Sections"
-CHORD_COLLECTION   = "FourBarChart"
+BEAT_COLLECTION         = "Beats"
+SECTION_COLLECTION      = "Sections"
+CHORD_COLLECTION        = "FourBarChart"
+CONVERSATION_COLLECTION = "ConversationState"
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ def read_cache(db: Database, user_id: int, song_name: str = None) -> Optional[Di
         return None
 
     return {
+        "song_name":  beat_doc["song_name"],
         "beats":      beat_doc["data"],
         "sections":   section_doc["data"],
         "chord_grid": chord_doc["data"],
@@ -54,3 +56,17 @@ def clear_cache(db: Database, user_id: int) -> None:
     db[BEAT_COLLECTION].delete_one(filter_)
     db[SECTION_COLLECTION].delete_one(filter_)
     db[CHORD_COLLECTION].delete_one(filter_)
+    db[CONVERSATION_COLLECTION].delete_one(filter_)
+
+
+def write_conversation_state(db: Database, user_id: int, song_name: str, response_id: str) -> None:
+    db[CONVERSATION_COLLECTION].replace_one(
+        {"user_id": user_id},
+        {"user_id": user_id, "song_name": song_name, "response_id": response_id},
+        upsert=True,
+    )
+
+
+def read_conversation_state(db: Database, user_id: int) -> Optional[str]:
+    doc = db[CONVERSATION_COLLECTION].find_one({"user_id": user_id})
+    return doc["response_id"] if doc else None
