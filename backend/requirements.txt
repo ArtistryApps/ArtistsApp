@@ -26,6 +26,7 @@ selenium
 webdriver-manager
 pymongo
 
+VideoEditor==0.1.1
 absl-py==2.4.0
 annotated-types==0.7.0
 antlr4-python3-runtime==4.9.3
