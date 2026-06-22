@@ -1,0 +1,74 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.tag.outputs.new_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Bump version tag
+        id: tag
+        uses: anothrNick/github-tag-action@1.67.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
+
+  deploy:
+    needs: bump-version
+    runs-on: [self-hosted, linux, x64]
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PIP_TRUSTED_HOST: ${{ secrets.TRUSTED_HOST }}
+          IMAGE_TAG: ${{ needs.bump-version.outputs.new_tag }}
+          IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+          PRIVATE_PACKAGES_SECRET_FILE: ${{ vars.PRIVATE_PACKAGES_SECRET_FILE }}
+        with:
+          host: ${{ secrets.SSH_HOST_ARTISTRY_WEBSITE }}
+          username: ${{ secrets.SSH_USER_DEFAULT }}
+          key: ${{ secrets.SSH_KEY_ARTISTRY_WEBSITE }}
+          envs: PIP_TRUSTED_HOST,IMAGE_TAG,IMAGE_NAME,PRIVATE_PACKAGES_SECRET_FILE
+          script: |
+            REPO_DIR=~/${{ github.event.repository.name }}
+            cd "~/${REPO_DIR}/backend"
+            git pull
+
+            docker login ghcr.io -u ${{ secrets.GH_USERNAME }} --password=${{ secrets.PAT_CONT_REGISTRY }}
+            rebuild_and_push() {
+              local SERVICE=$1
+              local FILTER=$2
+              IMAGE_ID=$(docker image ls --filter reference="${FILTER}" -q | head -1)
+              if [ -n "${IMAGE_ID}" ]; then
+                CONTAINER=$(docker ps --filter NAME="process.*${SERVICE}" -q)  
+                docker rm -f "${CONTAINER}"
+                docker image rm -f "${IMAGE_ID}"
+              fi
+              docker compose up -d --no-deps "${SERVICE}"
+              IMAGE_NAME=$(docker image ls --filter reference="${FILTER}" --format "{{.Repository}}:{{.Tag}}" | head -1)
+              docker tag "${IMAGE_NAME}" "ghcr.io/artistryapps/${IMAGE_NAME}"
+              docker push "ghcr.io/artistryapps/${IMAGE_NAME}"
+            }
+
+            echo 'checking for frontend changes'
+            FRONTEND_CHANGES=$(git diff --name-only HEAD~1 HEAD | grep frontend || true)
+            if [ -n "${FRONTEND_CHANGES}" ]; then
+              echo 'frontend changes found — rebuilding web'
+              rebuild_and_push web "*web:*"
+            fi
+
+            echo 'checking for backend changes'
+            BACKEND_CHANGES=$(git diff --name-only HEAD~1 HEAD | grep backend || true)
+            if [ -n "${BACKEND_CHANGES}" ]; then
+              echo 'backend changes found — rebuilding api'
+              rebuild_and_push api "*api:*"
+            fi

@@ -1,5 +1,5 @@
 #!/bin/sh
 set -e
 
-echo "Starting Nginx..."
-exec nginx -g 'daemon off;'
+echo "Running development server..."
+npm run dev

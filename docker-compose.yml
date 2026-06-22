@@ -1,38 +1,41 @@
 version: "3.8"
 
+networks:
+  artistry-network:
+    name: artistry-network
+
 services:
   api:
     build: ./backend
     image: artists_api:0.1.0
     command: ./app/docker-entrypoint.sh
     ports:
-      - 8000:8000
+      - 8080:8080
     environment:
-      USERNAME_API_CIVITAS: ${USERNAME_API_CIVITAS}
-      USERID_API_CIVITAS: ${USERID_API_CIVITAS}
-      PASSWORD_API_CIVITAS: ${PASSWORD_API_CIVITAS}
-    secrets:
-      - psql_password
-    depends_on:
-      - psql
-  psql:
-    image: postgres:12-bullseye
-    ports:
-      - 5433:5432
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_KEY: ${OPENAI_KEY}
+      OPENAI_PROJECT: ${OPENAI_PROJECT}
+      MONGODB_URI: ${MONGODB_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_DB: ${POSTGRES_DB}
-    secrets:
-      - psql_password
+    networks:
+      - artistry-network
+
   web:
     build: ./frontend
     image: artists_web:0.1.0
     command: ./docker-entrypoint.sh
     ports:
-      - 80:80
+      - 3000:3000
+    environment:
+      REACT_APP_API_URL: http://api:8080
     depends_on:
-      - psql
+      - api
+    networks:
+      - artistry-network
 
 secrets:
   psql_password:
