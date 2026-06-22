@@ -40,7 +40,7 @@ jobs:
           envs: PIP_TRUSTED_HOST,IMAGE_TAG,IMAGE_NAME,PRIVATE_PACKAGES_SECRET_FILE
           script: |
             REPO_DIR=~/${{ github.event.repository.name }}
-            cd "~/${REPO_DIR}/backend"
+            cd "${REPO_DIR}"
             git pull
 
             docker login ghcr.io -u ${{ secrets.GH_USERNAME }} --password=${{ secrets.PAT_CONT_REGISTRY }}
