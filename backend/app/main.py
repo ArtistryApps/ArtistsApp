@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from .config import settings, get_engine
-from .endpoints import auth_router, health_router, music_router
+from .endpoints import auth_router, health_router, music_router, video_router
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(music_router)
     app.include_router(auth_router)
+    app.include_router(video_router)
 
     return app
 

@@ -20,9 +20,10 @@ interface ChatMessage {
 
 interface AnalyticsDashboardProps {
   onLogout: () => void;
+  onBack?: () => void;
 }
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onLogout }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onLogout, onBack }) => {
   const [songInput, setSongInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +98,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onLogout
           <span className="dashboard-icon">♪</span>
           <span className="dashboard-title">Artists App</span>
         </div>
-        <button className="logout-btn" onClick={handleLogout}>Sign out</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {onBack && (
+            <button className="logout-btn" onClick={onBack}>← Back</button>
+          )}
+          <button className="logout-btn" onClick={handleLogout}>Sign out</button>
+        </div>
       </header>
 
       <main className="dashboard-main">
