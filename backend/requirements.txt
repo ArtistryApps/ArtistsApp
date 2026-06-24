@@ -59,7 +59,7 @@ gast
 google-auth
 google-auth-oauthlib
 google-pasta
-grpcio
+grpcio==1.81.0
 grpcio-tools
 h11
 h2
