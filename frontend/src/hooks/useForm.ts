@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { UseFormSetValue, UseFormTrigger, UseFormGetValues, FieldValues } from 'react-hook-form';
+import { UseFormSetValue, UseFormTrigger, UseFormGetValues, FieldValues, Path } from 'react-hook-form';
 
 export interface UseFormHelpersProps<T extends FieldValues> {
   setValue: UseFormSetValue<T>;
@@ -24,7 +24,7 @@ export const useFormHelpers = <T extends FieldValues>({
   getValues,
 }: UseFormHelpersProps<T>) => {
   const updateFieldValue = useCallback(
-    async (fieldName: keyof T, value: any) => {
+    async (fieldName: Path<T>, value: any) => {
       setValue(fieldName, value, { shouldDirty: true });
       await trigger(fieldName);
     },
@@ -32,7 +32,7 @@ export const useFormHelpers = <T extends FieldValues>({
   );
 
   const getFieldValue = useCallback(
-    (fieldName: keyof T) => {
+    (fieldName: Path<T>) => {
       return getValues(fieldName);
     },
     [getValues]

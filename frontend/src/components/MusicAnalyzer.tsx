@@ -3,7 +3,7 @@
  * Demonstrates form handling with react-hook-form, setValue, trigger, getValues
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,7 +28,7 @@ export const MusicAnalyzer: React.FC = () => {
     },
   });
 
-  const { analyzeSong, loading, error, data } = useMusicAnalysis();
+  const { loading, error, data } = useMusicAnalysis();
   const { updateFieldValue } = useFormHelpers({ setValue, trigger, getValues });
 
   const onSubmit = async (formData: AnalyzerFormData) => {
@@ -130,9 +130,9 @@ export const MusicAnalyzer: React.FC = () => {
             <h4>Sections ({data.sections.length})</h4>
             {data.sections.map((section, idx) => (
               <div key={idx} className="section-card">
-                <p><strong>{section.section_name}</strong></p>
+                <p><strong>{section.section}</strong></p>
                 <p>Bars: {section.num_bars}</p>
-                <p>Chords: {section.chords.join(', ')}</p>
+                <p>Chords: {section.chords?.join(', ')}</p>
               </div>
             ))}
           </div>
