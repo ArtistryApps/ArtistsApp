@@ -38,7 +38,7 @@ jobs:
           username: ${{ secrets.SSH_USER_DEFAULT }}
           key: ${{ secrets.SSH_KEY_ARTISTRY_WEBSITE }}
           envs: PIP_TRUSTED_HOST,IMAGE_TAG,IMAGE_NAME,PRIVATE_PACKAGES_SECRET_FILE
-          command_timeout: 30m
+          command_timeout: 60m
           script: |
             REPO_DIR=~/${{ github.event.repository.name }}
             cd "${REPO_DIR}"

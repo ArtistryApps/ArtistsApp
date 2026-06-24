@@ -1,4 +1,4 @@
-from google.cloud import secretmanager
+from google.cloud import secretmanager 
 
 PROJECT_ID = "musicwebsite-425022"
 # Requires GOOGLE_APPLICATION_CREDENTIALS env var set to the service account JSON path
