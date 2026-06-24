@@ -6,7 +6,13 @@ networks:
 
 services:
   api:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        - PRIVATE_PYPI_URL=${PRIVATE_PYPI_URL}
+        - PRIVATE_PYPI_USER=${PRIVATE_PYPI_USER}
+        - PRIVATE_PYPI_PASS=${PRIVATE_PYPI_PASS}
     image: artists_api:0.1.0
     command: ./app/docker-entrypoint.sh
     ports:
@@ -36,7 +42,3 @@ services:
       - api
     networks:
       - artistry-network
-
-secrets:
-  psql_password:
-    file: ./psql_password.txt
