@@ -18,12 +18,13 @@ openai==2.37.0
 pytest==9.0.3
 pytest-asyncio==0.21.1
 google-cloud-secret-manager
-starlette[full]
 python-multipart
 itsdangerous
 selenium
 webdriver-manager
 pymongo
+scikit-learn==1.8.0
+starlette==0.28.0
 
 VideoEditor==0.1.3
 absl-py
@@ -124,7 +125,6 @@ requests
 requests-oauthlib
 resampy
 retrying
-scikit-learn
 scipy
 selenium
 selenium-wire
