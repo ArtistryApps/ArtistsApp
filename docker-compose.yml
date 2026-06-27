@@ -14,7 +14,6 @@ services:
         - PRIVATE_PYPI_USER=${PRIVATE_PYPI_USER}
         - PRIVATE_PYPI_PASS=${PRIVATE_PYPI_PASS}
     image: artists_api:0.1.0
-    command: ./app/docker-entrypoint.sh
     ports:
       - 8080:8080
     environment:
