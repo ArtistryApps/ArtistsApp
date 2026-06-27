@@ -1,15 +1,10 @@
-FROM python:3.11-slim
+FROM ghcr.io/artistryapps/artists_api_base:latest
 
 ARG PRIVATE_PYPI_URL
 ARG PRIVATE_PYPI_USER
 ARG PRIVATE_PYPI_PASS
 
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 

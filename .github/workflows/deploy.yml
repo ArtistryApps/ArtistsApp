@@ -48,16 +48,12 @@ jobs:
             rebuild_and_push() {
               local SERVICE=$1
               local FILTER=$2
-              IMAGE_ID=$(docker image ls --filter reference="${FILTER}" -q | head -1)
-              if [ -n "${IMAGE_ID}" ]; then
-                CONTAINER=$(docker ps --filter NAME="process.*${SERVICE}" -q)  
-                docker rm -f "${CONTAINER}"
-                docker image rm -f "${IMAGE_ID}"
-              fi
+              docker compose build "${SERVICE}"
               docker compose up -d --no-deps "${SERVICE}"
               IMAGE_NAME=$(docker image ls --filter reference="${FILTER}" --format "{{.Repository}}:{{.Tag}}" | head -1)
               docker tag "${IMAGE_NAME}" "ghcr.io/artistryapps/${IMAGE_NAME}"
               docker push "ghcr.io/artistryapps/${IMAGE_NAME}"
+              docker image prune -f
             }
 
             echo 'checking for frontend changes'
