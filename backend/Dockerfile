@@ -11,6 +11,8 @@ COPY requirements.txt .
 RUN pip install -r /app/requirements.txt --extra-index-url http://${PRIVATE_PYPI_USER}:${PRIVATE_PYPI_PASS}@${PRIVATE_PYPI_URL} --trusted-host ${PRIVATE_PYPI_URL} \
     && pip uninstall -y bson
 
+RUN pip install --force-reinstall pymongo
+
 COPY . .
 
 EXPOSE 8000 
