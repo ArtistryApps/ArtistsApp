@@ -32,7 +32,7 @@ services:
   web:
     build: ./frontend
     image: artists_web:0.1.0
-    command: ./docker-entrypoint.sh
+    command: bash /app/docker-entrypoint.sh
     ports:
       - 3000:3000
     environment:

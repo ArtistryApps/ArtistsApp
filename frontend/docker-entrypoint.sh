@@ -2,4 +2,4 @@
 set -e
 
 echo "Running development server..."
-npm run dev
+npm run dev -- --host
