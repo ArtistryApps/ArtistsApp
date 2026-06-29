@@ -13,6 +13,11 @@ RUN pip install -r /app/requirements.txt --extra-index-url http://${PRIVATE_PYPI
 
 RUN pip install --force-reinstall pymongo
 
+RUN apt-get update && apt-get install -y \
+    chromium=149.* \
+    chromium-driver=149.* \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY . .
 
 RUN pip install debugpy
