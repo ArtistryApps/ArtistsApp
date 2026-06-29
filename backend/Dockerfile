@@ -8,7 +8,7 @@ WORKDIR /app
 
 RUN apt update && apt install -y curl vim
 
-RUN curl -fsSL https://aka.ms/install-vscode-server/setup.sh | sh
+RUN curl -fsSL https://aka.ms/install-vscode-server/setup.sh | bash
 
 RUN code-server --install-extension ms-python.python \
     && code-server --install-extension ms-python.debugpy
