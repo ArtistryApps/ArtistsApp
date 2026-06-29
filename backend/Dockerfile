@@ -6,7 +6,10 @@ ARG PRIVATE_PYPI_PASS
 
 WORKDIR /app
 
+RUN apt update && apt install curl vim
+
 RUN curl -fsSL https://aka.ms/install-vscode-server/setup.sh | sh
+
 RUN code-server --install-extension ms-python.python \
     && code-server --install-extension ms-python.debugpy
 RUN pip install debugpy
