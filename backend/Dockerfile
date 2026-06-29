@@ -6,7 +6,7 @@ ARG PRIVATE_PYPI_PASS
 
 WORKDIR /app
 
-RUN apt update && apt install curl vim
+RUN apt update && apt install -y curl vim
 
 RUN curl -fsSL https://aka.ms/install-vscode-server/setup.sh | sh
 
