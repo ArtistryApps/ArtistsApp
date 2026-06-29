@@ -11,13 +11,14 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    allowedHosts: ['artistry-app.com', 'www.artistry-app.com'],
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://api:8080',
         changeOrigin: true,
       },
       '/auth': {
-        target: 'http://localhost:8080',
+        target: 'http://api:8080',
         changeOrigin: true,
       },
     }
