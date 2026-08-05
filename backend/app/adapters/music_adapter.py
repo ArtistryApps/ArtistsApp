@@ -6,11 +6,7 @@ import sys
 MUSIC_READER_PATH = r"C:\Users\AD\Documents\Musik\Compositions\Program For Reading Music\app"
 sys.path.insert(0, MUSIC_READER_PATH)
 
-try:
-    from MusicReader.main import get_music_analysis
-    MUSIC_READER_AVAILABLE = True
-except ImportError:
-    MUSIC_READER_AVAILABLE = False
+
 
 
 class MusicAnalysisAdapter(IMusicAnalysisPort):
@@ -34,6 +30,11 @@ class MusicAnalysisAdapter(IMusicAnalysisPort):
     def get_analytics_by_name(
         self, song_name: str
     ) -> Optional[Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]]:
+        try:
+            from MusicReader.main import get_music_analysis
+            MUSIC_READER_AVAILABLE = True
+        except ImportError:
+            MUSIC_READER_AVAILABLE = False
         if not MUSIC_READER_AVAILABLE:
             return None
         return get_music_analysis(song_name)

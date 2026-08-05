@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from ..core import require_session
 from ..db import Session as SessionModel
-from VideoEditor import FileAligner
+
 
 class AudioVideoOverlapRequest(BaseModel):
     audio_base64: str
@@ -25,6 +25,7 @@ def join_audio_video_overlap(
     session: SessionModel = Depends(require_session),
 ) -> Dict[str, Any]:
     """Re."""
+    from VideoEditor import FileAligner
     video_bytes = base64.b64decode(body.video_base64)
     audio_bytes = base64.b64decode(body.audio_base64)
 

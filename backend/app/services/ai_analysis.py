@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Tuple
 MUSIC_READER_PATH = r"C:\Users\AD\Documents\Musik\Compositions\Program For Reading Music\app"
 sys.path.insert(0, MUSIC_READER_PATH)
 
-from MusicReader.src.MusicAnalyticsAssistant import MusicAnalyticsAssistant
+
 
 
 def get_ai_analysis(
@@ -13,6 +13,7 @@ def get_ai_analysis(
     cache: Dict[str, Any],
     response_id: Optional[str] = None,
 ) -> Tuple[str, str]:
+    from MusicReader.src.MusicAnalyticsAssistant import MusicAnalyticsAssistant
     assistant = MusicAnalyticsAssistant(model="gpt-4o")
     result = assistant.get_analysis(
         user_prompt,
